@@ -11,6 +11,8 @@ It bundles exploded tile files into a .bundlx and a .bundle file and really redu
 
 This library is a reader for the bundles.
 
+PLEASE NOTICE: this library is not available for the improved compact format introduced in ArcGIS 10.3, And we are working on the upgrade. 
+
 ## Install
 
 ```bash
@@ -23,6 +25,7 @@ npm install tiler-arcgis-compact
 var Tiler = require('tiler-arcgis-compact');
 //root folder of the tiles, where the Conf.xml stands
 var tiler = new Tiler('/home/foo/compact_tiles/');
+//tile's x,y,z
 tiler.getTile(3408, 2417, 2, function(error, tile) {
     if (error) {
         throw error;
