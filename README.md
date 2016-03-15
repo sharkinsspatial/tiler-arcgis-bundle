@@ -2,7 +2,8 @@
 
 [![Circle CI](https://circleci.com/gh/FuZhenn/tiler-arcgis-compact.svg?style=svg)](https://circleci.com/gh/FuZhenn/tiler-arcgis-compact)
 
-A map tile reader for compact tiles by ESRI ArcGIS
+A map tile reader for compact tiles by ESRI ArcGIS.
+
 
 ## Introduction
 [ArcGIS Compact Tile](https://server.arcgis.com/zh-cn/server/latest/publish-services/windows/inside-the-compact-cache-storage-format.htm) is a tile format since ArcGIS version 10.
@@ -11,10 +12,13 @@ It bundles exploded tile files into a .bundlx and a .bundle file and really redu
 
 This library is a reader for the bundles.
 
-## Usage
+## Install
+
 ```bash
 npm install tiler-arcgis-compact
 ```
+
+## Usage
 
 ```javascript
 var Tiler = require('tiler-arcgis-compact');
