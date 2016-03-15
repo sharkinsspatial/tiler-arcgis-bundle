@@ -1,0 +1,17 @@
+{
+  "name": "tiler-arcgis-compact",
+  "version": "0.1.0",
+  "description": "A map tile reader for compact tiles by ESRI ArcGIS",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FuZhenn/tiler-arcgis-compact"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test" : "node test/test.js"  
+  },
+  "dependencies": {    
+  },
+  "readmeFilename": "README.md"
+}
