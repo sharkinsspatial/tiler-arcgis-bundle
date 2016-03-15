@@ -22,7 +22,7 @@ npm install tiler-arcgis-compact
 ```javascript
 var Tiler = require('tiler-arcgis-compact');
 //root folder of the tiles, where the Conf.xml stands
-var tiler = new Tiler('/home/foo');
+var tiler = new Tiler('/home/foo/compact_tiles/');
 tiler.getTile(3408, 2417, 2, function(error, tile) {
     if (error) {
         throw error;
