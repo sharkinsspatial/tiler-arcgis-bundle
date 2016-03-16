@@ -13,6 +13,16 @@ This library is a reader for the bundles.
 
 PLEASE NOTICE: this library is not available for the improved compact format introduced in ArcGIS 10.3, And we are working on the upgrade. 
 
+## See Also
+[tiler-xyz](https://github.com/FuZhenn/tiler-xyz):
+a nodejs map tile file reader coordinating by X,Y,Z
+
+[tiler-mbtiles](https://github.com/FuZhenn/tiler-mbtiles):
+a nodejs map tile reader for mapbox mbtiles format.
+
+[tiler-arcgis-xyz](https://github.com/FuZhenn/tiler-arcgis-xyz):
+a nodejs map tile reader for exploded tiles by ESRI ArcGIS
+
 ## Install
 
 ```bash
