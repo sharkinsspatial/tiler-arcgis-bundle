@@ -14,10 +14,10 @@ This library is a reader for the bundles.
 PLEASE NOTICE: this library is not available for the improved compact format introduced in ArcGIS 10.3, And we are working on the upgrade. 
 
 ## See Also
-[tiler-xyz](https://github.com/FuZhenn/tiler-file):
+[tiler-file](https://github.com/FuZhenn/tiler-file):
 a nodejs map tile file reader coordinating by X,Y,Z
 
-[tiler-arcgis-xyz](https://github.com/FuZhenn/tiler-arcgis-file):
+[tiler-arcgis-file](https://github.com/FuZhenn/tiler-arcgis-file):
 a nodejs map tile reader for exploded tiles cache format by ESRI ArcGIS
 
 ## Install
