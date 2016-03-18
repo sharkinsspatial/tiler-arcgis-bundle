@@ -17,11 +17,8 @@ PLEASE NOTICE: this library is not available for the improved compact format int
 [tiler-xyz](https://github.com/FuZhenn/tiler-file):
 a nodejs map tile file reader coordinating by X,Y,Z
 
-[tiler-mbtiles](https://github.com/FuZhenn/tiler-mbtiles):
-a nodejs map tile reader for mapbox mbtiles format.
-
 [tiler-arcgis-xyz](https://github.com/FuZhenn/tiler-arcgis-file):
-a nodejs map tile reader for exploded tiles by ESRI ArcGIS
+a nodejs map tile reader for exploded tiles cache format by ESRI ArcGIS
 
 ## Install
 
