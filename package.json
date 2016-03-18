@@ -1,17 +1,17 @@
 {
-  "name": "tiler-arcgis-compact",
+  "name": "tiler-arcgis-bundle",
   "version": "0.1.0",
-  "description": "A nodejs map tile reader for compact tiles by ESRI ArcGIS",
+  "description": "A nodejs map tile reader for compact tile storage format used by ESRI ArcGIS 10.0-10.2",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FuZhenn/tiler-arcgis-compact"
+    "url": "https://github.com/FuZhenn/tiler-arcgis-bundle"
   },
   "main": "index.js",
   "scripts": {
-    "test" : "node test/test.js"  
+    "test" : "node test/test.js"
   },
-  "dependencies": {    
+  "dependencies": {
   },
   "readmeFilename": "README.md"
 }

@@ -6,8 +6,8 @@ var gridColCnt = 128;
 
 /**
  * Constructor for the tiler-arcgis-xyz
- * 
- * @param {String} root - the root folder of ArcGIS compact tiles, where the Conf.xml stands.
+ *
+ * @param {String} root - the root folder of ArcGIS bundle tiles, where the Conf.xml stands.
  * @class
  */
 function tiler(root) {
@@ -40,7 +40,7 @@ tiler.prototype.getTile=function(x, y, z, callback) {
             if (err) {
                 callback(err);
                 return;
-            }    
+            }
             readTileFromBundle(bundlxFileName, bundleFileName, index, function(err, bytesRead, buffer) {
                 if (err) {
                     callback(err);
@@ -48,10 +48,10 @@ tiler.prototype.getTile=function(x, y, z, callback) {
                 }
                 callback(null, {
                     'lastModified' : stats.mtime,
-                    'data'         : buffer 
+                    'data'         : buffer
                 })
             });
-        });      	
+        });
 }
 
 function readTileFromBundle(bundlxFileName, bundleFileName, index, callback) {
@@ -63,7 +63,7 @@ function readTileFromBundle(bundlxFileName, bundleFileName, index, callback) {
             return;
         }
         fs.read(lxfd, buffer, 0, buffer.length, 16 + 5 * index, function(err, bytesRead, buffer) {
-            fs.closeSync(lxfd);           
+            fs.closeSync(lxfd);
             if (err) {
                 callback(err);
                 return;
@@ -79,9 +79,9 @@ function readTileFromBundle(bundlxFileName, bundleFileName, index, callback) {
                     + (buffer[4] & 0xff)
                     * 4294967296;
             readTile(bundleFileName, offset, callback);
-        });		
+        });
     });
-    
+
 }
 
 function readTile(bundleFileName, offset, callback) {
@@ -97,7 +97,7 @@ function readTile(bundleFileName, offset, callback) {
                 fs.closeSync(fd);
                 callback(err);
                 return;
-            } 
+            }
             var length = (buffer[0] & 0xff)
                 + (buffer[1] & 0xff)
                 * 256
@@ -112,7 +112,7 @@ function readTile(bundleFileName, offset, callback) {
             });
         });
     });
-            
+
 }
 
 function getBundlePath(root, level, rGroup, cGroup) {
