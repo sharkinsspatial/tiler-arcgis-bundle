@@ -1,17 +1,18 @@
 var fs = require('fs'),
     util = require('util');
 
-var gridRowCnt = 128;
-var gridColCnt = 128;
-
 /**
- * Constructor for the tiler-arcgis-xyz
+ * Constructor for the tiler-arcgis-bundle
  *
  * @param {String} root - the root folder of ArcGIS bundle tiles, where the Conf.xml stands.
  * @class
  */
-function tiler(root) {
+function tiler(root, packSize) {
     this.root = root;
+    if (!packSize) {
+        packSize = 128;
+    }
+    this.packSize = packSize;
 }
 
 
@@ -29,8 +30,9 @@ function tiler(root) {
  * @return  {Object} tile data.
  */
 tiler.prototype.getTile=function(x, y, z, callback) {
-		var rGroup = parseInt(gridRowCnt * parseInt(y / gridRowCnt));
-		var cGroup = parseInt(gridColCnt * parseInt(x / gridColCnt));
+        var packSize = this.packSize;
+		var rGroup = parseInt(packSize * parseInt(y / packSize));
+		var cGroup = parseInt(packSize * parseInt(x / packSize));
 		var bundleBase = getBundlePath(this.root, z, rGroup, cGroup);
 		var bundlxFileName = bundleBase + ".bundlx";
 		var bundleFileName = bundleBase + ".bundle";
