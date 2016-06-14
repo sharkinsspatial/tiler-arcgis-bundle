@@ -1,6 +1,6 @@
 # tiler-arcgis-bundle
 
-[![Circle CI](https://circleci.com/gh/FuZhenn/tiler-arcgis-bundle.svg?style=svg)](https://circleci.com/gh/FuZhenn/tiler-arcgis-bundle)
+[![Circle CI](https://circleci.com/gh/fuzhenn/tiler-arcgis-bundle.svg?style=svg)](https://circleci.com/gh/fuzhenn/tiler-arcgis-bundle)
 
 A nodejs map tile reader for compact tile storage format used by ESRI ArcGIS 10.0-10.2
 
