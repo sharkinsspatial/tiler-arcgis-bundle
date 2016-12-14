@@ -1,5 +1,8 @@
-var fs = require('fs'),
-    util = require('util');
+var os = require('os');
+var fs = require('fs');
+var util = require('util');
+var path = require('path');
+var mkdirp = require('mkdirp');
 
 /**
  * Constructor for the tiler-arcgis-bundle
@@ -37,7 +40,6 @@ tiler.prototype.getTile=function(x, y, z, callback) {
 		var bundlxFileName = bundleBase + ".bundlx";
 		var bundleFileName = bundleBase + ".bundle";
 		var index = 128 * (x - cGroup) + (y - rGroup);
-
         fs.stat(bundleFileName, function(err, stats) {
             if (err) {
                 callback(err);
@@ -55,6 +57,8 @@ tiler.prototype.getTile=function(x, y, z, callback) {
             });
         });
 }
+
+
 
 function readTileFromBundle(bundlxFileName, bundleFileName, index, callback) {
     //get tile's offset in bundleFile from bundlxFile
@@ -115,6 +119,100 @@ function readTile(bundleFileName, offset, callback) {
         });
     });
 
+}
+
+tiler.prototype.putTile = function(x, y, z, tile, callback) {
+    var packSize = this.packSize;
+    var rGroup = parseInt(packSize * parseInt(y / packSize));
+    var cGroup = parseInt(packSize * parseInt(x / packSize));
+    var bundleBase = getBundlePath(this.root, z, rGroup, cGroup);
+    var bundlxFileName = bundleBase + ".bundlx";
+    var bundleFileName = bundleBase + ".bundle";
+    var index = 128 * (x - cGroup) + (y - rGroup);
+
+    writeTileToBundleSync(bundlxFileName, bundleFileName, tile, index, callback);
+}
+
+function writeTileToBundleSync(bundlxFileName, bundleFileName, tile, index, callback) {
+    var length = new Buffer(4);
+    length.writeUIntBE(tile.length, 0, 4);
+    var writeBuffer = Buffer.concat([length.reverse(), tile]);
+
+    checkBundleSync(bundleFileName);
+
+    var stats = fs.statSync(bundleFileName);
+    var offset = stats['size'];
+
+    fs.appendFileSync(bundleFileName, writeBuffer);
+    writeToBundlxSync(bundlxFileName, offset, index, callback);
+}
+
+function checkBundleSync(bundleFileName) {
+    if (!fsExistsSync(bundleFileName)) {
+        mkdirp.sync(path.dirname(bundleFileName));
+        var header = new Buffer(60);
+        header.fill(0);
+        fs.appendFileSync(bundleFileName, header);
+
+        // Write empty tile immediately after header
+        var length = new Buffer(4);
+        length.writeUIntBE(0, 0, 4);
+
+        // Empty buffer necessary for tile readers.
+        var emptyBuffer = new Buffer(0);
+        emptyBuffer.fill(0);
+        // Image length is reversed.
+        var writeBuffer = Buffer.concat([length.reverse(), emptyBuffer]);
+        fs.appendFileSync(bundleFileName, writeBuffer);
+    }
+}
+
+function fsExistsSync(dir) {
+    try {
+        fs.accessSync(dir);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function writeToBundlxSync(bundlxFileName, offset, index, callback) {
+    // Bundle offset is first 5 bytes.
+    var offsetBuffer = new Buffer(5);
+    offsetBuffer.fill(0);
+    if (os.endianness() === 'BE') {
+        offsetBuffer.writeUInt32BE(offset, 0);
+    }
+    else {
+        offsetBuffer.writeUInt32LE(offset, 0);
+    }
+    var position = 16 + 5 * index;
+
+    if (!fsExistsSync(bundlxFileName)) {
+        var buffer = new Buffer(81952);
+        // Use offset of 60 for empty tile.
+        var emptyOffset = new Buffer(5);
+        emptyOffset.fill(0);
+        if (os.endianness() === 'BE') {
+            emptyOffset.writeUInt32BE(60, 0);
+        }
+        else {
+            emptyOffset.writeUInt32LE(60, 0);
+        }
+        // Account for 16 Byte header and footer when
+        // filling with empty offset pointers
+        buffer.fill(0, 0, 16);
+        buffer.fill(emptyOffset, 16, 81936);
+        buffer.fill(0, 81936, 81952);
+
+        fs.appendFileSync(bundlxFileName, buffer);
+    }
+    // r+ flag necessary for writing on Linux as a+ is not handled by kernel.
+    var fd = fs.openSync(bundlxFileName, 'r+');
+    fs.writeSync(fd, offsetBuffer, 0, offsetBuffer.length, position);
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    callback(null);
 }
 
 function getBundlePath(root, level, rGroup, cGroup) {

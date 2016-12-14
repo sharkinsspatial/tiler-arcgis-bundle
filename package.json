@@ -5,13 +5,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FuZhenn/tiler-arcgis-bundle"
+    "url": "https://github.com/sharkinsspatial/tiler-arcgis-bundle"
   },
   "main": "index.js",
   "scripts": {
-    "test" : "node test/test.js"
+    "test": "node test/test.js"
   },
   "dependencies": {
+    "mkdirp": "^0.5.1",
+    "rimraf": "^2.5.4"
   },
   "readmeFilename": "README.md"
 }
