@@ -142,8 +142,9 @@ function writeTileToBundleSync(bundlxFileName, bundleFileName, tile, index, call
 
     var stats = fs.statSync(bundleFileName);
     var offset = stats['size'];
-
+    
     fs.appendFileSync(bundleFileName, writeBuffer);
+    updateHeader(bundleFileName, offset, tile.length);
     writeToBundlxSync(bundlxFileName, offset, index, callback);
 }
 
@@ -152,6 +153,23 @@ function checkBundleSync(bundleFileName) {
         mkdirp.sync(path.dirname(bundleFileName));
         var header = new Buffer(60);
         header.fill(0);
+        // Write header values from https://github.com/mapproxy/ 
+        header.writeUInt32LE(3, 0); // 0, fixed
+        header.writeUInt32LE(16384, 4); // 1, max number tiles
+        header.writeUInt32LE(16, 8); // 2, size of largest tile
+        header.writeUInt32LE(5, 12); // 3, fixed
+        header.writeUInt32LE(0, 16); // 4, number of tiles in bundle
+        header.writeUInt32LE(0, 20); // 5, fixed
+        header.writeUInt32LE(0, 24); // 6, bundle size
+        header.writeUInt32LE(0, 28); // 7, fixed
+        header.writeUInt32LE(40, 32); // 8, fixed
+        header.writeUInt32LE(0, 36);  // 9, fixed
+        header.writeUInt32LE(16, 40); // 10, fixed
+        header.writeUInt32LE(0, 44);  // 11, x0
+        header.writeUInt32LE(127, 48); // 12, x1
+        header.writeUInt32LE(0, 52); // 13, y0
+        header.writeUInt32LE(127, 56); // 14, y1
+
         fs.appendFileSync(bundleFileName, header);
 
         // Write empty tile immediately after header
@@ -165,6 +183,38 @@ function checkBundleSync(bundleFileName) {
         var writeBuffer = Buffer.concat([length.reverse(), emptyBuffer]);
         fs.appendFileSync(bundleFileName, writeBuffer);
     }
+}
+
+function updateHeader(bundleFileName, bundleSize, tileSize) {
+    var fd = fs.openSync(bundleFileName, 'r+');
+
+    // Update bundle size
+    var bundleSizeBuffer = new Buffer(4);
+    bundleSizeBuffer.writeUInt32LE(bundleSize, 0); 
+    fs.writeSync(fd, bundleSizeBuffer, 0, 4, 24);
+
+    // Update total number of tiles.
+    var numberOfTilesBuffer = new Buffer(4);
+    fs.readSync(fd, numberOfTilesBuffer, 0, 4, 16);
+    var numberOfTiles = numberOfTilesBuffer.readUInt32LE(0);
+    var currentNumberOfTilesBuffer = new Buffer(4);
+    currentNumberOfTilesBuffer.writeUInt32LE(numberOfTiles++, 0);
+    fs.writeSync(fd, currentNumberOfTilesBuffer, 0, 4, 16); 
+
+    // Update largest tile value
+    var largestTileBuffer = new Buffer(4);
+    fs.readSync(fd, largestTileBuffer, 0, 4, 8); 
+    var largestTileSize = largestTileBuffer.readUInt32LE(0);
+    console.log(largestTileSize);
+    console.log(tileSize);
+    if (tileSize > largestTileSize) {
+        var newLargestTileBuffer = new Buffer(4);
+        newLargestTileBuffer.writeUInt32LE(tileSize, 0);
+        fs.writeSync(fd, newLargestTileBuffer, 0, 4, 8);
+    }
+
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
 }
 
 function fsExistsSync(dir) {
