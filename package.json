@@ -15,5 +15,11 @@
     "mkdirp": "^0.5.1",
     "rimraf": "^2.5.4"
   },
-  "readmeFilename": "README.md"
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "babel-eslint": "^6.1.2",
+    "eslint": "^3.13.1",
+    "eslint-config-airbnb-es5": "^1.1.0",
+    "eslint-plugin-react": "^6.9.0"
+  }
 }

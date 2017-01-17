@@ -8,16 +8,17 @@ var mkdirp = require('mkdirp');
  * Constructor for the tiler-arcgis-bundle
  *
  * @param {String} root - the root folder of ArcGIS bundle tiles, where the Conf.xml stands.
+ * @param {Number} packSize - the pack size of images in the bundle.
  * @class
  */
 function tiler(root, packSize) {
     this.root = root;
     if (!packSize) {
-        packSize = 128;
+        this.packSize = 128;
+    } else {
+        this.packSize = packSize;
     }
-    this.packSize = packSize;
 }
-
 
 /**
  * Get a tile, Schema is XYZ.
@@ -32,108 +33,109 @@ function tiler(root, packSize) {
  * @param {Function(error, tile)} callback - tile x coordinate.
  * @return  {Object} tile data.
  */
-tiler.prototype.getTile=function(x, y, z, callback) {
-        var packSize = this.packSize;
-		var rGroup = parseInt(packSize * parseInt(y / packSize));
-		var cGroup = parseInt(packSize * parseInt(x / packSize));
-		var bundleBase = getBundlePath(this.root, z, rGroup, cGroup);
-		var bundlxFileName = bundleBase + ".bundlx";
-		var bundleFileName = bundleBase + ".bundle";
-		var index = 128 * (x - cGroup) + (y - rGroup);
-        fs.stat(bundleFileName, function(err, stats) {
-            if (err) {
-                callback(err);
-                return;
-            }
-            readTileFromBundle(bundlxFileName, bundleFileName, index, function(err, bytesRead, buffer) {
-                if (err) {
-                    callback(err);
-                    return;
-                }
-                callback(null, {
-                    'lastModified' : stats.mtime,
-                    'data'         : buffer
-                })
-            });
-        });
-}
-
-
-
-function readTileFromBundle(bundlxFileName, bundleFileName, index, callback) {
-    //get tile's offset in bundleFile from bundlxFile
-    var buffer = new Buffer(5);
-    fs.open(bundlxFileName,'r',function(err, lxfd) {
+tiler.prototype.getTile = function getTile(x, y, z, callback) {
+    var packSize = this.packSize;
+    var rGroup = parseInt(packSize * parseInt(y / packSize));
+    var cGroup = parseInt(packSize * parseInt(x / packSize));
+    var bundleBase = getBundlePath(this.root, z, rGroup, cGroup);
+    var bundlxFileName = bundleBase + '.bundlx';
+    var bundleFileName = bundleBase + '.bundle';
+    var index = 128 * (x - cGroup) + (y - rGroup);
+    fs.stat(bundleFileName, function (err, stats) {
         if (err) {
             callback(err);
             return;
         }
-        fs.read(lxfd, buffer, 0, buffer.length, 16 + 5 * index, function(err, bytesRead, buffer) {
-            fs.closeSync(lxfd);
-            if (err) {
-                callback(err);
-                return;
-            }
-            //offset for tile data in bundleFile
-            var offset = (buffer[0] & 0xff)
+        readTileFromBundle(bundlxFileName, bundleFileName, index,
+                           function (tileError, bytesRead, buffer) {
+                               if (tileError) {
+                                   callback(tileError);
+                                   return;
+                               }
+                               callback(null, {
+                                   'lastModified': stats.mtime,
+                                   'data': buffer
+                               });
+                           });
+    });
+};
+
+function readTileFromBundle(bundlxFileName, bundleFileName, index, callback) {
+    //  get tile's offset in bundleFile from bundlxFile
+    var buffer = new Buffer(5);
+    fs.open(bundlxFileName, 'r', function (err, lxfd) {
+        if (err) {
+            callback(err);
+            return;
+        }
+        fs.read(lxfd, buffer, 0, buffer.length, 16 + 5 * index,
+                function (indexError, bytesRead, indexBuffer) {
+                    fs.closeSync(lxfd);
+                    if (indexError) {
+                        callback(indexError);
+                        return;
+                    }
+                    // offset for tile data in bundleFile
+                    var offset = (indexBuffer[0] & 0xff)
+                    + (indexBuffer[1] & 0xff)
+                    * 256
+                    + (indexBuffer[2] & 0xff)
+                    * 65536
+                    + (indexBuffer[3] & 0xff)
+                    * 16777216
+                    + (indexBuffer[4] & 0xff)
+                    * 4294967296;
+                    readTile(bundleFileName, offset, callback);
+                });
+    });
+}
+
+function readTile(bundleFileName, offset, callback) {
+    fs.open(bundleFileName, 'r', function (err, fd) {
+        if (err) {
+            callback(err);
+            return;
+        }
+        // the start 4 bytes are the length of the tile data.
+        var lengthBytes = new Buffer(4);
+        fs.read(fd, lengthBytes, 0, lengthBytes.length, offset,
+                function (lengthError, bytesRead, buffer) {
+                    if (lengthError) {
+                        fs.closeSync(fd);
+                        callback(lengthError);
+                        return;
+                    }
+                    var length = (buffer[0] & 0xff)
                     + (buffer[1] & 0xff)
                     * 256
                     + (buffer[2] & 0xff)
                     * 65536
                     + (buffer[3] & 0xff)
-                    * 16777216
-                    + (buffer[4] & 0xff)
-                    * 4294967296;
-            readTile(bundleFileName, offset, callback);
-        });
+                    * 16777216;
+                    var tileData = new Buffer(length);
+                    fs.read(fd, tileData, 0, tileData.length, offset + 4,
+                            function (tileError, bytes, tileBuffer) {
+                                fs.closeSync(fd);
+                                callback(tileError, bytes, tileBuffer);
+                            });
+                });
     });
-
 }
 
-function readTile(bundleFileName, offset, callback) {
-    fs.open(bundleFileName,'r',function(err, fd){
-        if (err) {
-            callback(err);
-            return;
-        }
-       //the start 4 bytes are the length of the tile data.
-        var lengthBytes = new Buffer(4);
-        fs.read(fd, lengthBytes, 0, lengthBytes.length, offset, function(err, bytesRead, buffer) {
-            if (err) {
-                fs.closeSync(fd);
-                callback(err);
-                return;
-            }
-            var length = (buffer[0] & 0xff)
-                + (buffer[1] & 0xff)
-                * 256
-                + (buffer[2] & 0xff)
-                * 65536
-                + (buffer[3] & 0xff)
-                * 16777216;
-            var tileData = new Buffer(length);
-            fs.read(fd, tileData, 0, tileData.length, offset + 4, function(err, bytesRead, buffer) {
-                fs.closeSync(fd);
-                callback(err, bytesRead, buffer);
-            });
-        });
-    });
-
-}
-
-tiler.prototype.putTile = function(x, y, z, tile, callback) {
+tiler.prototype.putTile = function (x, y, z, tile, callback) {
     var packSize = this.packSize;
     var rGroup = parseInt(packSize * parseInt(y / packSize));
     var cGroup = parseInt(packSize * parseInt(x / packSize));
     var bundleBase = getBundlePath(this.root, z, rGroup, cGroup);
-    var bundlxFileName = bundleBase + ".bundlx";
-    var bundleFileName = bundleBase + ".bundle";
+    var bundlxFileName = bundleBase + '.bundlx';
+    var bundleFileName = bundleBase + '.bundle';
     var index = 128 * (x - cGroup) + (y - rGroup);
 
     writeTileToBundleSync(bundlxFileName, bundleFileName, tile, index, callback);
-}
+};
 
-function writeTileToBundleSync(bundlxFileName, bundleFileName, tile, index, callback) {
+function writeTileToBundleSync(bundlxFileName, bundleFileName, tile,
+                               index, callback) {
     var length = new Buffer(4);
     length.writeUIntBE(tile.length, 0, 4);
     var writeBuffer = Buffer.concat([length.reverse(), tile]);
@@ -141,8 +143,8 @@ function writeTileToBundleSync(bundlxFileName, bundleFileName, tile, index, call
     checkBundleSync(bundleFileName);
 
     var stats = fs.statSync(bundleFileName);
-    var offset = stats['size'];
-    
+    var offset = stats.size;
+
     fs.appendFileSync(bundleFileName, writeBuffer);
     updateHeader(bundleFileName, offset, tile.length);
     writeToBundlxSync(bundlxFileName, offset, index, callback);
@@ -152,8 +154,8 @@ function checkBundleSync(bundleFileName) {
     if (!fsExistsSync(bundleFileName)) {
         mkdirp.sync(path.dirname(bundleFileName));
         var header = new Buffer(60);
-        header.fill(0);
-        // Write header values from https://github.com/mapproxy/ 
+        // Write header values from https://github.com/mapproxy/
+
         header.writeUInt32LE(3, 0); // 0, fixed
         header.writeUInt32LE(16384, 4); // 1, max number tiles
         header.writeUInt32LE(16, 8); // 2, size of largest tile
@@ -190,7 +192,7 @@ function updateHeader(bundleFileName, bundleSize, tileSize) {
 
     // Update bundle size
     var bundleSizeBuffer = new Buffer(4);
-    bundleSizeBuffer.writeUInt32LE(bundleSize, 0); 
+    bundleSizeBuffer.writeUInt32LE(bundleSize, 0);
     fs.writeSync(fd, bundleSizeBuffer, 0, 4, 24);
 
     // Update total number of tiles.
@@ -199,14 +201,12 @@ function updateHeader(bundleFileName, bundleSize, tileSize) {
     var numberOfTiles = numberOfTilesBuffer.readUInt32LE(0);
     var currentNumberOfTilesBuffer = new Buffer(4);
     currentNumberOfTilesBuffer.writeUInt32LE(numberOfTiles++, 0);
-    fs.writeSync(fd, currentNumberOfTilesBuffer, 0, 4, 16); 
+    fs.writeSync(fd, currentNumberOfTilesBuffer, 0, 4, 16);
 
     // Update largest tile value
     var largestTileBuffer = new Buffer(4);
-    fs.readSync(fd, largestTileBuffer, 0, 4, 8); 
+    fs.readSync(fd, largestTileBuffer, 0, 4, 8);
     var largestTileSize = largestTileBuffer.readUInt32LE(0);
-    console.log(largestTileSize);
-    console.log(tileSize);
     if (tileSize > largestTileSize) {
         var newLargestTileBuffer = new Buffer(4);
         newLargestTileBuffer.writeUInt32LE(tileSize, 0);
@@ -232,8 +232,7 @@ function writeToBundlxSync(bundlxFileName, offset, index, callback) {
     offsetBuffer.fill(0);
     if (os.endianness() === 'BE') {
         offsetBuffer.writeUInt32BE(offset, 0);
-    }
-    else {
+    } else {
         offsetBuffer.writeUInt32LE(offset, 0);
     }
     var position = 16 + 5 * index;
@@ -245,8 +244,7 @@ function writeToBundlxSync(bundlxFileName, offset, index, callback) {
         emptyOffset.fill(0);
         if (os.endianness() === 'BE') {
             emptyOffset.writeUInt32BE(60, 0);
-        }
-        else {
+        } else {
             emptyOffset.writeUInt32LE(60, 0);
         }
         // Account for 16 Byte header and footer when
@@ -266,36 +264,36 @@ function writeToBundlxSync(bundlxFileName, offset, index, callback) {
 }
 
 function getBundlePath(root, level, rGroup, cGroup) {
-		var bundlesDir = root;
-		var l = level.toString();
-		var lLength = l.length;
-		if (lLength < 2) {
-			for (var i = 0; i < 2 - lLength; i++) {
-				l = "0" + l;
-			}
-		}
-		l = "L" + l;
+    var bundlesDir = root;
+    var l = level.toString();
+    var lLength = l.length;
+    var i;
+    if (lLength < 2) {
+        for (i = 0; i < 2 - lLength; i++) {
+            l = '0' + l;
+        }
+    }
+    l = 'L' + l;
 
-		var r = parseInt(rGroup,10).toString(16);
-		var rLength = r.length;
-		if (rLength < 4) {
-			for (var i = 0; i < 4 - rLength; i++) {
-				r = "0" + r;
-			}
-		}
-		r = "R" + r;
+    var r = parseInt(rGroup, 10).toString(16);
+    var rLength = r.length;
+    if (rLength < 4) {
+        for (i = 0; i < 4 - rLength; i++) {
+            r = '0' + r;
+        }
+    }
+    r = 'R' + r;
 
-		var c = parseInt(cGroup,10).toString(16);
-		var cLength = c.length;
-		if (cLength < 4) {
-			for (var i = 0; i < 4 - cLength; i++) {
-				c = "0" + c;
-			}
-		}
-		c = "C" + c;
-		var bundlePath = util.format("%s/_alllayers/%s/%s%s", bundlesDir,
-				l, r, c);
-		return bundlePath;
-	}
+    var c = parseInt(cGroup, 10).toString(16);
+    var cLength = c.length;
+    if (cLength < 4) {
+        for (i = 0; i < 4 - cLength; i++) {
+            c = '0' + c;
+        }
+    }
+    c = 'C' + c;
+    var bundlePath = util.format('%s/_alllayers/%s/%s%s', bundlesDir, l, r, c);
+    return bundlePath;
+}
 
 exports = module.exports = tiler;

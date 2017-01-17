@@ -1,0 +1,7 @@
+ "extends": "eslint-config-airbnb-es5"
+ "rules": {
+        "indent": ["error", 4],
+        "comma-dangle": 0,
+        "quotes": ["error", "single",{ "allowTemplateLiterals": true }],
+        "func-names": 0
+    }
